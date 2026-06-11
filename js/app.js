@@ -375,48 +375,26 @@ const LOGO_PROMPT_SUFFIX = '将该logo居中置顶，维持logo样式。';
 let LOGO_PATH = 'assets/logo_1.png';
 let SAMPLE_IMG = null;
 
-async function loadLogoAsBase64(path) {
-  const res = await fetch(path);
-  const blob = await res.blob();
-  return new Promise(r => {
-    const reader = new FileReader();
-    reader.onload = () => r(reader.result);
-    reader.readAsDataURL(blob);
-  });
-}
-
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = () => reject(new Error('图片加载失败: ' + src.slice(0, 80)));
     img.src = src;
   });
 }
 
-async function compositeLogoOnSample(sampleB64, logoPath) {
-  const sampleImg = await loadImage(sampleB64);
-  const logoB64 = await loadLogoAsBase64(logoPath);
-  const logoImg = await loadImage(logoB64);
+function getLogoDataUrl(path) {
+  return LOGO_DATA_URLS[path] || path;
+}
 
-  const canvas = document.createElement('canvas');
-  canvas.width = sampleImg.naturalWidth;
-  canvas.height = sampleImg.naturalHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(sampleImg, 0, 0);
-
-  const logoW = canvas.width * 0.2;
-  const logoH = logoW * (logoImg.naturalHeight / logoImg.naturalWidth);
-  const x = (canvas.width - logoW) / 2;
-  const y = canvas.height * 0.03;
-  ctx.drawImage(logoImg, x, y, logoW, logoH);
-
-  return canvas.toDataURL('image/png');
+function updateLogoPreview(path) {
+  document.getElementById('logo-preview').src = getLogoDataUrl(path);
 }
 
 document.getElementById('logo-select').addEventListener('change', (e) => {
   LOGO_PATH = e.target.value;
-  document.getElementById('logo-preview').src = LOGO_PATH;
+  updateLogoPreview(LOGO_PATH);
   log('INFO', 'Logo切换', LOGO_PATH);
 });
 
@@ -454,11 +432,26 @@ document.getElementById('logo-go').addEventListener('click', async () => {
   log('INFO', 'Logo生图开始', `prompt=${prompt.slice(0,80)} size=${size.w}x${size.h} logo=${LOGO_PATH} sample=${SAMPLE_IMG ? 'yes' : 'no'}`);
   try {
     let refImage;
+    const logoDataUrl = getLogoDataUrl(LOGO_PATH);
     if (SAMPLE_IMG) {
-      refImage = await compositeLogoOnSample(SAMPLE_IMG, LOGO_PATH);
+      const [sampleImg, logoImg] = await Promise.all([
+        loadImage(SAMPLE_IMG),
+        loadImage(logoDataUrl),
+      ]);
+      const canvas = document.createElement('canvas');
+      canvas.width = sampleImg.naturalWidth;
+      canvas.height = sampleImg.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(sampleImg, 0, 0);
+      const logoW = canvas.width * 0.2;
+      const logoH = logoW * (logoImg.naturalHeight / logoImg.naturalWidth);
+      const x = (canvas.width - logoW) / 2;
+      const y = canvas.height * 0.03;
+      ctx.drawImage(logoImg, x, y, logoW, logoH);
+      refImage = canvas.toDataURL('image/png');
       log('INFO', 'Logo+样品合成完成');
     } else {
-      refImage = await loadLogoAsBase64(LOGO_PATH);
+      refImage = logoDataUrl;
     }
     const payload = { ...basePayload(prompt, size, quality), image: refImage };
     const url = await callAPI(EDIT_URL, payload);
@@ -841,6 +834,7 @@ document.getElementById('update-modal').addEventListener('click', (e) => {
 // ====== 初始化 ======
 (async () => {
   loadStylePrompts();
+  updateLogoPreview(LOGO_PATH);
   await I18N.init();
   const langSelect = document.getElementById('lang-select');
   if (langSelect) {

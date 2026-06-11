@@ -120,3 +120,12 @@
 - 编辑后自动保存到 localStorage，下次打开自动加载
 - 每个面板独立保存各自的画风提示词
 - Logo生图面板默认包含 logo 相关提示词，其他面板共享基础提示词
+
+### 迭代 16 — NetworkError 修复 + 检查更新 + Gitee 推送
+
+- 修复 NetworkError：增加 file:// 协议检测，提示用户通过 http:// 访问
+- 新增「检查更新」按钮：调用 Gitee API 获取最新版本，对比 APP_VERSION
+- 有更新时按钮显示红点，点击弹窗显示版本详情（版本号、提交信息、时间）
+- 弹窗支持「确认更新」（跳转 Gitee）和「忽略」关闭
+- 每小时最多检查一次（避免频繁请求）
+- 代码推送到 Gitee：git@gitee.com:echohaoran/GPT-image-generatehot.git
