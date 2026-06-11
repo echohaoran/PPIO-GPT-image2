@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="app.title">成长中心菜品图生成</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span>PPIO</span>
+    <select class="lang-select" id="lang-select">
+      <option value="zh-CN">中文</option>
+      <option value="en-US">English</option>
+    </select>
+  </div>
+  <div style="position:absolute;left:50%;transform:translateX(-50%);height:40px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+    <img src="assets/logo_2.png" data-i18n-title="app.title" alt="成长中心菜品图生成" style="height:100px;margin:-30px 0">
+  </div>
+  <button class="log-btn" id="check-update">检查更新</button>
+  <button class="log-btn" id="download-log">导出日志</button>
+</header>
+
+<div id="update-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:12px;padding:24px;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <h3 style="margin-bottom:12px;font-size:16px">检查更新</h3>
+    <div id="update-content" style="font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:20px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button id="update-ignore" style="padding:8px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px">忽略</button>
+      <button id="update-confirm" style="padding:8px 16px;border:none;border-radius:var(--radius);background:var(--accent);color:#fff;cursor:pointer;font-size:13px;display:none">确认更新</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="left">
+    <div class="tabs">
+      <div class="tab active" data-tab="logo" data-i18n="tab.logo">Logo生图</div>
+      <div class="tab" data-tab="t2i" data-i18n="tab.t2i">文生图</div>
+      <div class="tab" data-tab="i2i" data-i18n="tab.i2i">图生图</div>
+      <div class="tab" data-tab="inpaint" data-i18n="tab.inpaint">修复</div>
+    </div>
+
+    <!-- Logo生图 -->
+    <div class="panel active" id="panel-logo">
+      <textarea class="style-preset" id="style-logo">采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中，将该logo居中置顶，维持logo样式。</textarea>
+      <label data-i18n="label.logo_ref">当前Logo</label>
+      <select id="logo-select" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 12px;font-size:14px;cursor:pointer;width:100%">
+        <option value="assets/logo_1.png">Logo 1</option>
+        <option value="assets/logo_2.png">Logo 2</option>
+        <option value="assets/logo_3.png">Logo 3</option>
+        <option value="assets/logo_4.png">Logo 4</option>
+        <option value="assets/logo_5.png">Logo 5</option>
+      </select>
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:8px;text-align:center;background:var(--bg)">
+        <img id="logo-preview" src="assets/logo_1.png" style="max-width:100%;max-height:80px;display:block;margin:0 auto" alt="Logo">
+      </div>
+      <label>样品实拍</label>
+      <div class="upload-zone" id="sample-upload">
+        <input type="file" accept="image/*" id="sample-file">
+        <div class="label">点击或拖拽上传样品实拍图</div>
+      </div>
+      <label data-i18n="label.dish">目标菜品</label>
+      <textarea id="logo-prompt" data-i18n-placeholder="placeholder.dish" placeholder="输入菜品名称，如：红烧肉、提拉米苏"></textarea>
+      <label data-i18n="label.size">尺寸</label>
+      <div class="size-grid" id="logo-sizes">
+        <div class="size-btn active" data-w="1024" data-h="1024">1024x1024</div>
+        <div class="size-btn" data-w="1024" data-h="1536">1024x1536</div>
+        <div class="size-btn" data-w="1536" data-h="1024">1536x1024</div>
+        <div class="size-btn" data-w="1024" data-h="768">1024x768</div>
+        <div class="size-btn" data-w="768" data-h="1024">768x1024</div>
+        <div class="size-btn" data-w="2048" data-h="1360">2048x1360</div>
+        <div class="size-btn custom-btn" data-custom="1" data-i18n="size.custom">自定义</div>
+      </div>
+      <div class="size-custom" id="logo-custom">
+        <input type="number" min="256" max="4096" value="1024" id="logo-cw" placeholder="宽">
+        <span>x</span>
+        <input type="number" min="256" max="4096" value="1536" id="logo-ch" placeholder="高">
+        <span>px</span>
+      </div>
+      <label data-i18n="label.quality">画质</label>
+      <select id="logo-quality">
+        <option value="low" data-i18n="quality.low">Low</option>
+        <option value="medium" data-i18n="quality.medium">Medium</option>
+        <option value="high" selected data-i18n="quality.high">High</option>
+      </select>
+      <button class="btn btn-primary" id="logo-go" data-i18n="btn.generate">生成</button>
+      <div class="progress-wrap" id="logo-progress"><div class="progress-bar"><div class="fill" id="logo-fill"></div></div><div class="progress-pct" id="logo-pct"></div></div>
+      <div class="live-log" id="logo-log"></div>
+      <div class="status" id="logo-status"></div>
+    </div>
+
+    <!-- 文生图 -->
+    <div class="panel" id="panel-t2i">
+      <textarea class="style-preset" id="style-t2i">采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中</textarea>
+      <label data-i18n="label.dish">目标菜品</label>
+      <textarea id="t2i-prompt" data-i18n-placeholder="placeholder.dish" placeholder="输入菜品名称，如：红烧肉、提拉米苏"></textarea>
+      <label data-i18n="label.size">尺寸</label>
+      <div class="size-grid" id="t2i-sizes">
+        <div class="size-btn active" data-w="1024" data-h="1024">1024x1024</div>
+        <div class="size-btn" data-w="1024" data-h="1536">1024x1536</div>
+        <div class="size-btn" data-w="1536" data-h="1024">1536x1024</div>
+        <div class="size-btn" data-w="1024" data-h="768">1024x768</div>
+        <div class="size-btn" data-w="768" data-h="1024">768x1024</div>
+        <div class="size-btn" data-w="2048" data-h="1360">2048x1360</div>
+        <div class="size-btn custom-btn" data-custom="1" data-i18n="size.custom">自定义</div>
+      </div>
+      <div class="size-custom" id="t2i-custom">
+        <input type="number" min="256" max="4096" value="1024" id="t2i-cw" placeholder="宽">
+        <span>x</span>
+        <input type="number" min="256" max="4096" value="1536" id="t2i-ch" placeholder="高">
+        <span>px</span>
+      </div>
+      <label data-i18n="label.quality">画质</label>
+      <select id="t2i-quality">
+        <option value="low" data-i18n="quality.low">Low</option>
+        <option value="medium" data-i18n="quality.medium">Medium</option>
+        <option value="high" selected data-i18n="quality.high">High</option>
+      </select>
+      <button class="btn btn-primary" id="t2i-go" data-i18n="btn.generate">生成</button>
+      <div class="progress-wrap" id="t2i-progress"><div class="progress-bar"><div class="fill" id="t2i-fill"></div></div><div class="progress-pct" id="t2i-pct"></div></div>
+      <div class="live-log" id="t2i-log"></div>
+      <div class="status" id="t2i-status"></div>
+    </div>
+
+    <!-- 图生图 -->
+    <div class="panel" id="panel-i2i">
+      <textarea class="style-preset" id="style-i2i">采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中</textarea>
+      <label data-i18n="label.ref_image">参考图</label>
+      <div class="upload-zone" id="i2i-upload">
+        <input type="file" accept="image/*" id="i2i-file">
+        <div class="label" data-i18n="upload.hint">点击或拖拽上传图片</div>
+      </div>
+      <label data-i18n="label.dish">目标菜品</label>
+      <textarea id="i2i-prompt" data-i18n-placeholder="placeholder.dish" placeholder="输入菜品名称，如：红烧肉、提拉米苏"></textarea>
+      <label data-i18n="label.size">尺寸</label>
+      <div class="size-grid" id="i2i-sizes">
+        <div class="size-btn active" data-w="1024" data-h="1024">1024x1024</div>
+        <div class="size-btn" data-w="1024" data-h="1536">1024x1536</div>
+        <div class="size-btn" data-w="1536" data-h="1024">1536x1024</div>
+        <div class="size-btn" data-w="1024" data-h="768">1024x768</div>
+        <div class="size-btn" data-w="768" data-h="1024">768x1024</div>
+        <div class="size-btn" data-w="2048" data-h="1360">2048x1360</div>
+        <div class="size-btn custom-btn" data-custom="1" data-i18n="size.custom">自定义</div>
+      </div>
+      <div class="size-custom" id="i2i-custom">
+        <input type="number" min="256" max="4096" value="1024" id="i2i-cw" placeholder="宽">
+        <span>x</span>
+        <input type="number" min="256" max="4096" value="1536" id="i2i-ch" placeholder="高">
+        <span>px</span>
+      </div>
+      <label data-i18n="label.quality">画质</label>
+      <select id="i2i-quality">
+        <option value="low" data-i18n="quality.low">Low</option>
+        <option value="medium" data-i18n="quality.medium">Medium</option>
+        <option value="high" selected data-i18n="quality.high">High</option>
+      </select>
+      <button class="btn btn-primary" id="i2i-go" data-i18n="btn.generate">生成</button>
+      <div class="progress-wrap" id="i2i-progress"><div class="progress-bar"><div class="fill" id="i2i-fill"></div></div><div class="progress-pct" id="i2i-pct"></div></div>
+      <div class="live-log" id="i2i-log"></div>
+      <div class="status" id="i2i-status"></div>
+    </div>
+
+    <!-- 修复 -->
+    <div class="panel" id="panel-inpaint">
+      <textarea class="style-preset" id="style-inpaint">采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中</textarea>
+      <label data-i18n="label.original_image">原图</label>
+      <div class="upload-zone" id="inpaint-upload">
+        <input type="file" accept="image/*" id="inpaint-file">
+        <div class="label" data-i18n="upload.hint">点击或拖拽上传图片</div>
+      </div>
+      <div class="canvas-wrap" id="inpaint-canvas-wrap">
+        <canvas id="inpaint-canvas"></canvas>
+        <div class="canvas-toolbar">
+          <button id="mask-clear" data-i18n="inpaint.clear_mask">清除遮罩</button>
+          <div class="brush-size">
+            <span data-i18n="inpaint.brush">画笔</span> <input type="range" id="brush-range" min="5" max="80" value="25">
+          </div>
+        </div>
+      </div>
+      <label data-i18n="label.dish">目标菜品</label>
+      <textarea id="inpaint-prompt" data-i18n-placeholder="placeholder.dish" placeholder="输入菜品名称，如：红烧肉、提拉米苏"></textarea>
+      <label data-i18n="label.size">尺寸</label>
+      <div class="size-grid" id="inpaint-sizes">
+        <div class="size-btn active" data-w="1024" data-h="1024">1024x1024</div>
+        <div class="size-btn" data-w="1024" data-h="1536">1024x1536</div>
+        <div class="size-btn" data-w="1536" data-h="1024">1536x1024</div>
+        <div class="size-btn" data-w="1024" data-h="768">1024x768</div>
+        <div class="size-btn" data-w="768" data-h="1024">768x1024</div>
+        <div class="size-btn" data-w="2048" data-h="1360">2048x1360</div>
+        <div class="size-btn custom-btn" data-custom="1" data-i18n="size.custom">自定义</div>
+      </div>
+      <div class="size-custom" id="inpaint-custom">
+        <input type="number" min="256" max="4096" value="1024" id="inpaint-cw" placeholder="宽">
+        <span>x</span>
+        <input type="number" min="256" max="4096" value="1536" id="inpaint-ch" placeholder="高">
+        <span>px</span>
+      </div>
+      <label data-i18n="label.quality">画质</label>
+      <select id="inpaint-quality">
+        <option value="low" data-i18n="quality.low">Low</option>
+        <option value="medium" data-i18n="quality.medium">Medium</option>
+        <option value="high" selected data-i18n="quality.high">High</option>
+      </select>
+      <button class="btn btn-primary" id="inpaint-go" data-i18n="btn.generate">生成</button>
+      <div class="progress-wrap" id="inpaint-progress"><div class="progress-bar"><div class="fill" id="inpaint-fill"></div></div><div class="progress-pct" id="inpaint-pct"></div></div>
+      <div class="live-log" id="inpaint-log"></div>
+      <div class="status" id="inpaint-status"></div>
+    </div>
+  </div>
+
+  <!-- 右侧: 结果 + 历史 -->
+  <div class="right">
+    <div class="right-header">
+      <span data-i18n="result.title">生成结果</span>
+      <span class="badge" id="history-count">0</span>
+    </div>
+    <div class="result-area" id="result-area">
+      <div class="placeholder" id="result-placeholder" data-i18n="result.placeholder">生成结果将显示在这里</div>
+    </div>
+    <div class="right-header">
+      <span data-i18n="history.title">历史记录</span>
+      <span class="badge btn-sm" style="cursor:pointer" id="clear-history" data-i18n="history.clear">清空</span>
+    </div>
+    <div id="history-list" style="overflow-y:auto;flex:1;padding:8px"></div>
+  </div>
+</main>
+
+<script src="js/i18n.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
