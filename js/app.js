@@ -393,9 +393,30 @@ function updateLogoPreview(path) {
 }
 
 document.getElementById('logo-select').addEventListener('change', (e) => {
-  LOGO_PATH = e.target.value;
+  const val = e.target.value;
+  if (val === '__upload__') {
+    document.getElementById('logo-upload').click();
+    e.target.value = LOGO_PATH;
+    return;
+  }
+  LOGO_PATH = val;
   updateLogoPreview(LOGO_PATH);
   log('INFO', 'Logo切换', LOGO_PATH);
+});
+
+document.getElementById('logo-upload').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const b64 = await new Promise(r => {
+    const reader = new FileReader();
+    reader.onload = () => r(reader.result);
+    reader.readAsDataURL(file);
+  });
+  const path = '__custom__';
+  LOGO_DATA_URLS[path] = b64;
+  LOGO_PATH = path;
+  updateLogoPreview(path);
+  log('INFO', '自定义Logo上传', `size=${file.size} type=${file.type}`);
 });
 
 const sampleInput = document.getElementById('sample-file');

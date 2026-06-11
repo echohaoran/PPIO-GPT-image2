@@ -129,3 +129,16 @@
 - 弹窗支持「确认更新」（跳转 Gitee）和「忽略」关闭
 - 每小时最多检查一次（避免频繁请求）
 - 代码推送到 Gitee：git@gitee.com:echohaoran/GPT-image-generatehot.git
+
+### 迭代 17 — Logo 内联 + Canvas 安全修复
+
+- 新增 `scripts/build_logo_data.py`：将 5 个 Logo 缩放到 400px 宽并内联为 base64
+- 新增 `js/logo_data.js`：自动生成的 Logo data URL 映射表
+- 修复 "The operation is insecure" 错误：用内联 data URL 替代 file:// 路径加载 Logo
+- Canvas 操作不再被跨域污染，`toDataURL()` 正常执行
+
+### 迭代 18 — Logo 支持上传自定义
+
+- 下拉菜单新增「上传自定义Logo」选项
+- 选择后弹出文件选择器，上传的 Logo 转为 base64 data URL 存储
+- 自定义 Logo 与预设 Logo 使用相同的生成逻辑，支持 Canvas 合成
