@@ -801,8 +801,7 @@ document.querySelectorAll('textarea').forEach(ta => {
 
 // ====== 检查更新 ======
 const APP_VERSION = '1.0.0';
-const GITEE_API = 'https://gitee.com/api/v5/repos/echohaoran/GPT-image-generatehot/commits';
-const GITEE_RAW = 'https://gitee.com/echohaoran/GPT-image-generatehot/raw/master/js/app.js';
+const GITEE_API = 'https://gitee.com/api/v5/repos/echohaoran/GPT-image-generatehot';
 const UPDATE_CHECK_KEY = 'gpt_image2_last_update_check';
 
 async function checkUpdate(force) {
@@ -811,18 +810,19 @@ async function checkUpdate(force) {
   if (!force && lastCheck && now - parseInt(lastCheck) < 3600000) return;
 
   try {
-    const res = await fetch(GITEE_API + '?access_token=&per_page=1');
-    if (!res.ok) throw new Error('API request failed');
-    const commits = await res.json();
+    const commitsRes = await fetch(GITEE_API + '/commits?per_page=1');
+    if (!commitsRes.ok) throw new Error('Commits API failed');
+    const commits = await commitsRes.json();
     if (!commits.length) return;
 
     const latestMsg = commits[0].commit.message || '';
     const latestDate = commits[0].commit.author.date;
     const latestSha = commits[0].sha.slice(0, 7);
 
-    const localRes = await fetch(GITEE_RAW + '?t=' + now);
-    if (!localRes.ok) return;
-    const remoteCode = await localRes.text();
+    const fileRes = await fetch(GITEE_API + '/contents/js/app.js?ref=main&t=' + now);
+    if (!fileRes.ok) throw new Error('Contents API failed');
+    const fileData = await fileRes.json();
+    const remoteCode = atob(fileData.content);
     const versionMatch = remoteCode.match(/APP_VERSION\s*=\s*'([^']+)'/);
     const remoteVersion = versionMatch ? versionMatch[1] : '0.0.0';
 
