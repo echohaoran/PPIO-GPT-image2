@@ -48,6 +48,13 @@
 
     <!-- Logo生图 -->
     <div class="panel active" id="panel-logo">
+      <div class="style-preset-header">
+        <label data-i18n="label.style_preset">固定提示词</label>
+        <select id="style-logo-preset" class="style-preset-select">
+          <option value="dish" data-i18n="label.preset_dish">菜品摄影</option>
+          <option value="poster" data-i18n="label.preset_poster">海报描述</option>
+        </select>
+      </div>
       <textarea class="style-preset" id="style-logo">采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中，将该logo居中置顶，维持logo样式。</textarea>
       <label data-i18n="label.logo_ref">当前Logo</label>
       <select id="logo-select" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 12px;font-size:14px;cursor:pointer;width:100%">
@@ -67,7 +74,7 @@
         <input type="file" accept="image/*" id="sample-file">
         <div class="label">点击或拖拽上传样品实拍图</div>
       </div>
-      <label data-i18n="label.dish">目标菜品</label>
+      <label data-i18n="label.dish">目标主题</label>
       <textarea id="logo-prompt" data-i18n-placeholder="placeholder.dish" placeholder="输入菜品名称，如：红烧肉、提拉米苏"></textarea>
       <label data-i18n="label.size">尺寸</label>
       <div class="size-grid" id="logo-sizes">
@@ -99,8 +106,15 @@
 
     <!-- 文生图 -->
     <div class="panel" id="panel-t2i">
+      <div class="style-preset-header">
+        <label data-i18n="label.style_preset">固定提示词</label>
+        <select id="style-t2i-preset" class="style-preset-select">
+          <option value="dish" data-i18n="label.preset_dish">菜品摄影</option>
+          <option value="poster" data-i18n="label.preset_poster">海报描述</option>
+        </select>
+      </div>
       <textarea class="style-preset" id="style-t2i">采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中</textarea>
-      <label data-i18n="label.dish">目标菜品</label>
+      <label data-i18n="label.dish">目标主题</label>
       <textarea id="t2i-prompt" data-i18n-placeholder="placeholder.dish" placeholder="输入菜品名称，如：红烧肉、提拉米苏"></textarea>
       <label data-i18n="label.size">尺寸</label>
       <div class="size-grid" id="t2i-sizes">
@@ -132,13 +146,20 @@
 
     <!-- 图生图 -->
     <div class="panel" id="panel-i2i">
+      <div class="style-preset-header">
+        <label data-i18n="label.style_preset">固定提示词</label>
+        <select id="style-i2i-preset" class="style-preset-select">
+          <option value="dish" data-i18n="label.preset_dish">菜品摄影</option>
+          <option value="poster" data-i18n="label.preset_poster">海报描述</option>
+        </select>
+      </div>
       <textarea class="style-preset" id="style-i2i">采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中</textarea>
       <label data-i18n="label.ref_image">参考图</label>
       <div class="upload-zone" id="i2i-upload">
         <input type="file" accept="image/*" id="i2i-file">
         <div class="label" data-i18n="upload.hint">点击或拖拽上传图片</div>
       </div>
-      <label data-i18n="label.dish">目标菜品</label>
+      <label data-i18n="label.dish">目标主题</label>
       <textarea id="i2i-prompt" data-i18n-placeholder="placeholder.dish" placeholder="输入菜品名称，如：红烧肉、提拉米苏"></textarea>
       <label data-i18n="label.size">尺寸</label>
       <div class="size-grid" id="i2i-sizes">
@@ -170,6 +191,13 @@
 
     <!-- 修复 -->
     <div class="panel" id="panel-inpaint">
+      <div class="style-preset-header">
+        <label data-i18n="label.style_preset">固定提示词</label>
+        <select id="style-inpaint-preset" class="style-preset-select">
+          <option value="dish" data-i18n="label.preset_dish">菜品摄影</option>
+          <option value="poster" data-i18n="label.preset_poster">海报描述</option>
+        </select>
+      </div>
       <textarea class="style-preset" id="style-inpaint">采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中</textarea>
       <label data-i18n="label.original_image">原图</label>
       <div class="upload-zone" id="inpaint-upload">
@@ -185,7 +213,7 @@
           </div>
         </div>
       </div>
-      <label data-i18n="label.dish">目标菜品</label>
+      <label data-i18n="label.dish">目标主题</label>
       <textarea id="inpaint-prompt" data-i18n-placeholder="placeholder.dish" placeholder="输入菜品名称，如：红烧肉、提拉米苏"></textarea>
       <label data-i18n="label.size">尺寸</label>
       <div class="size-grid" id="inpaint-sizes">

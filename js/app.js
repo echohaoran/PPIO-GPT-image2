@@ -4,18 +4,36 @@ const T2I_URL = 'https://api.ppio.com/v3/gpt-image-2-text-to-image';
 const EDIT_URL = 'https://api.ppio.com/v3/gpt-image-2-edit';
 const HISTORY_KEY = 'gpt_image2_history';
 const STYLE_KEY = 'gpt_image2_style';
-const DEFAULT_STYLE = '采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，主体居中，专业美食摄影，';
-const DEFAULT_STYLE_LOGO = '采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中，将该logo居中置顶，维持logo样式。';
+const STYLE_PRESETS = {
+  dish: {
+    name: 'label.preset_dish',
+    logo: '采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，专业美食摄影，主体居中，将该logo居中置顶，维持logo样式。',
+    default: '采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质餐厅菜单摄影，简约无杂乱构图，主体居中，专业美食摄影，',
+  },
+  poster: {
+    name: 'label.preset_poster',
+    logo: '采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质海报设计，简约无杂乱构图，主体居中，专业平面设计，将该logo居中置顶，维持logo样式。',
+    default: '采用#F3B9D9、#FFEE3D、#00E57F这三个颜色构成背景与柔和自然棚拍光线，高品质海报设计，简约无杂乱构图，主体居中，专业平面设计，',
+  },
+};
+
+function getStylePresetDefault(presetKey, panelId) {
+  const preset = STYLE_PRESETS[presetKey];
+  if (!preset) return '';
+  return panelId === 'style-logo' ? preset.logo : preset.default;
+}
 
 function loadStylePrompts() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(STYLE_KEY)); } catch {}
   const ids = ['style-logo', 'style-t2i', 'style-i2i', 'style-inpaint'];
-  const defaults = [DEFAULT_STYLE_LOGO, DEFAULT_STYLE, DEFAULT_STYLE, DEFAULT_STYLE];
-  ids.forEach((id, i) => {
+  ids.forEach(id => {
     const el = document.getElementById(id);
+    const select = document.getElementById(id + '-preset');
     if (el) {
-      el.value = (saved && saved[id]) || defaults[i];
+      const savedPreset = (saved && saved[id + '_preset']) || 'dish';
+      if (select) select.value = savedPreset;
+      el.value = (saved && saved[id]) || getStylePresetDefault(savedPreset, id);
       el.addEventListener('input', saveStylePrompts);
     }
   });
@@ -25,16 +43,33 @@ function saveStylePrompts() {
   const data = {};
   ['style-logo', 'style-t2i', 'style-i2i', 'style-inpaint'].forEach(id => {
     const el = document.getElementById(id);
+    const select = document.getElementById(id + '-preset');
     if (el) data[id] = el.value;
+    if (select) data[id + '_preset'] = select.value;
   });
   localStorage.setItem(STYLE_KEY, JSON.stringify(data));
 }
 
+function initStylePresetSelects() {
+  const ids = ['style-logo', 'style-t2i', 'style-i2i', 'style-inpaint'];
+  ids.forEach(id => {
+    const select = document.getElementById(id + '-preset');
+    if (!select) return;
+    select.addEventListener('change', () => {
+      const textarea = document.getElementById(id);
+      if (textarea) {
+        textarea.value = getStylePresetDefault(select.value, id);
+        saveStylePrompts();
+      }
+    });
+  });
+}
+
 function getActiveStylePrompt() {
   const activePanel = document.querySelector('.panel.active');
-  if (!activePanel) return DEFAULT_STYLE;
+  if (!activePanel) return STYLE_PRESETS.dish.default;
   const textarea = activePanel.querySelector('.style-preset');
-  return textarea ? textarea.value : DEFAULT_STYLE;
+  return textarea ? textarea.value : STYLE_PRESETS.dish.default;
 }
 
 // ====== 日志 ======
@@ -371,7 +406,6 @@ function resetProgress(prefix) {
 }
 
 // ====== Logo 生图 ======
-const LOGO_PROMPT_SUFFIX = '将该logo居中置顶，维持logo样式。';
 let LOGO_PATH = 'assets/logo_1.png';
 let SAMPLE_IMG = null;
 
@@ -444,7 +478,7 @@ document.getElementById('logo-go').addEventListener('click', async () => {
   const status = document.getElementById('logo-status');
   const userInput = document.getElementById('logo-prompt').value.trim();
   if (!userInput) { setStatus(status, I18N.t('status.dish_required'), true); return; }
-  const prompt = getActiveStylePrompt() + userInput + LOGO_PROMPT_SUFFIX;
+  const prompt = getActiveStylePrompt() + userInput;
 
   const size = getSize('logo-sizes');
   const quality = document.getElementById('logo-quality').value;
@@ -855,6 +889,7 @@ document.getElementById('update-modal').addEventListener('click', (e) => {
 // ====== 初始化 ======
 (async () => {
   loadStylePrompts();
+  initStylePresetSelects();
   updateLogoPreview(LOGO_PATH);
   await I18N.init();
   const langSelect = document.getElementById('lang-select');

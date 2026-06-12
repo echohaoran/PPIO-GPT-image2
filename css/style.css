@@ -36,9 +36,12 @@ select{cursor:pointer}
 .size-custom span{color:var(--dim);font-size:13px}
 .size-btn.custom-btn{color:var(--dim);font-style:italic}
 .size-btn.custom-btn.active{color:var(--accent2);font-style:normal}
+.style-preset-header{display:flex;justify-content:space-between;align-items:center}
+.style-preset-header label{font-size:13px;color:var(--dim);margin-bottom:0}
+.style-preset-select{font-size:12px;color:var(--dim);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:4px 8px;cursor:pointer}
+.style-preset-select:focus{outline:none;border-color:var(--accent)}
 .style-preset{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--dim);line-height:1.6;word-break:break-all;user-select:none;position:relative;min-height:60px;resize:vertical;font-family:inherit}
 .style-preset:focus{outline:none;border-color:var(--accent)}
-.style-preset::before{content:'固定画风（可编辑）';position:absolute;top:-8px;left:10px;background:var(--surface);padding:0 4px;font-size:11px;color:var(--accent2)}
 .color-dots{display:inline-flex;gap:4px;vertical-align:middle;margin:0 2px}
 .color-dots span{width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.1)}
 .upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
