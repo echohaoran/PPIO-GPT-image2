@@ -13,7 +13,7 @@ const I18N = {
 
   async load(locale) {
     try {
-      const res = await fetch(`js/locales/${locale}.json`);
+      const res = await fetch(`js/locales/${locale}.json?t=${Date.now()}`);
       if (!res.ok) throw new Error(`locale not found: ${locale}`);
       this._messages = await res.json();
     } catch (e) {
@@ -46,7 +46,6 @@ const I18N = {
   },
 
   async switchLocale(locale) {
-    if (locale === this._locale) return;
     this._locale = locale;
     localStorage.setItem('gpt_image2_locale', locale);
     await this.load(locale);
