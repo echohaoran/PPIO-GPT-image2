@@ -80,13 +80,21 @@ PPIO-GPT-image2/
 - 新增翻译 → 编辑 `js/locales/zh-CN.js` 和 `en-US.js`
 - 每次变更后更新 `vibecode_log.md`
 
-### 5.3 禁止事项
+### 5.3 版本更新规则
+- `js/app.js` 中的 `APP_VERSION` 是版本检查的唯一来源
+- 每次推送代码到远程仓库前，**必须**递增 `APP_VERSION`（如 `1.0.0` → `1.1.0`），否则云端检查更新不会检测到变化
+- 版本号格式：`MAJOR.MINOR.PATCH`
+  - 新功能/新文件 → 递增 MINOR
+  - Bug 修复 → 递增 PATCH
+  - 架构重构 → 递增 MAJOR
+
+### 5.4 禁止事项
 - 禁止在 HTML 中内联 `<style>` 或 `<script>`
 - 禁止使用绝对路径
 - 禁止引入 npm 依赖
 - 禁止修改 `server.py` 的端口号（默认 8765）除非用户明确要求
 
-### 5.4 测试验证
+### 5.5 测试验证
 - 每次变更后启动 `python3 server.py`，访问 `http://localhost:8765`
 - 验证三个 Tab 切换正常
 - 验证文生图/图生图/修复流程
@@ -105,3 +113,4 @@ PPIO-GPT-image2/
 | 2026-06-11 | i18n 国际化支持                                | js/i18n.js, locales/*, index.html     |
 | 2026-06-11 | 移除 Logo 合成，新增 Logo生图 Tab，简化 server | server.py, js/app.js, index.html      |
 | 2026-06-11 | i18n 修复: JSON locale + fetch.json()          | js/i18n.js, locales/*.json            |
+| 2026-06-12 | 新增 OpenAI 兼容 API 服务器 (api_server.py)    | api_server.py, requirements.txt, Dockerfile.api, docker-compose.yml |

@@ -800,7 +800,7 @@ document.querySelectorAll('textarea').forEach(ta => {
 });
 
 // ====== 检查更新 ======
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const GITEE_API = 'https://gitee.com/api/v5/repos/echohaoran/GPT-image-generatehot';
 const UPDATE_CHECK_KEY = 'gpt_image2_last_update_check';
 
