@@ -12,3 +12,17 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: ppio-image-api
+    ports:
+      - "${API_PORT:-8766}:8766"
+    environment:
+      - API_PORT=8766
+      - API_HOST=0.0.0.0
+    env_file:
+      - .env
+    restart: unless-stopped
