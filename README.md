@@ -16,12 +16,30 @@
 ├── assets/
 │   ├── logo_1.png ~ logo_5.png  # Logo 选项
 │   └── all-logo.svg             # 源 Logo SVG
-├── server.py               # Python 静态文件服务器
+├── server.py               # Python 静态文件服务器（含配置注入）
+├── .env.example            # 环境变量模板
 ├── Dockerfile              # Docker 镜像配置
 ├── docker-compose.yml      # Docker Compose 部署
 ├── nginx.conf              # Nginx 配置（可选）
 └── deploy.sh               # 部署脚本
 ```
+
+---
+
+## 快速开始
+
+```bash
+# 1. 复制环境变量模板并填入你的 API Key
+cp .env.example .env
+# 编辑 .env，将 API_KEY=your_api_key_here 改为你的真实 Key
+
+# 2. 启动服务
+python3 server.py
+```
+
+访问 `http://localhost:8765` 即可使用。
+
+> ⚠️ **必须通过 server.py 启动**，直接用浏览器打开 `index.html`（file:// 协议）无法加载配置。
 
 ---
 
@@ -122,17 +140,52 @@ systemctl restart nginx
 
 ## 配置说明
 
-| 配置项          | 位置               | 默认值                                      |
-|----------------|--------------------|---------------------------------------------|
-| API Key        | js/app.js          | sk_aODZCHX9...                              |
-| T2I Endpoint   | js/app.js          | api.ppio.com/v3/gpt-image-2-text-to-image   |
-| Edit Endpoint  | js/app.js          | api.ppio.com/v3/gpt-image-2-edit            |
-| Logo 选项       | assets/            | logo_1.png ~ logo_5.png                     |
-| 服务器端口      | 环境变量 PORT      | 8765                                        |
-| 生成超时        | js/app.js          | 5 分钟                                      |
-| 默认尺寸        | index.html         | 1024x1024                                   |
-| 默认画质        | index.html         | high                                        |
-| 输出格式        | js/app.js          | png                                         |
+所有敏感配置通过 `.env` 文件管理，**不会提交到 Git 仓库**。
+
+### 环境变量
+
+| 变量名      | 说明              | 默认值                                          |
+|------------|-------------------|------------------------------------------------|
+| `API_KEY`  | PPIO API Key（必填） | 无                                              |
+| `T2I_URL`  | 文生图 API 端点    | `https://api.ppio.com/v3/gpt-image-2-text-to-image` |
+| `EDIT_URL` | 图生图 API 端点    | `https://api.ppio.com/v3/gpt-image-2-edit`          |
+| `PORT`     | 服务器端口         | `8765`                                          |
+| `HOST`     | 监听地址           | `0.0.0.0`                                       |
+
+### 配置方式
+
+**方式一：`.env` 文件（推荐）**
+
+```bash
+cp .env.example .env
+# 编辑 .env
+API_KEY=sk_xxxxx
+```
+
+**方式二：环境变量**
+
+```bash
+API_KEY=sk_xxxxx python3 server.py
+```
+
+**方式三：Docker Compose**
+
+docker-compose.yml 会自动读取 `.env` 文件，也可以直接在 `environment` 中设置：
+
+```yaml
+environment:
+  - API_KEY=sk_xxxxx
+```
+
+### 其他配置
+
+| 配置项          | 位置               | 默认值                    |
+|----------------|--------------------|---------------------------|
+| Logo 选项       | assets/            | logo_1.png ~ logo_5.png   |
+| 生成超时        | js/app.js          | 5 分钟                    |
+| 默认尺寸        | index.html         | 1024x1024                 |
+| 默认画质        | index.html         | high                      |
+| 输出格式        | js/app.js          | png                       |
 
 ---
 

@@ -57,7 +57,7 @@ PPIO-GPT-image2/
 ### 4.1 文生图
 - **Endpoint**: `POST https://api.ppio.com/v3/gpt-image-2-text-to-image`
 - **Body**: `{ prompt, size, n, quality, moderation, output_format, output_compression, background }`
-- **Auth**: `Authorization: Bearer sk_aODZCHX9jhJGPuDmlk-cEkQHO71CWc5JDMfmk_n2450`
+- **Auth**: `Authorization: Bearer <API_KEY>` (从 .env 读取，通过 /config.js 注入前端)
 
 ### 4.2 图生图 / Inpaint / Logo生图
 - **Endpoint**: `POST https://api.ppio.com/v3/gpt-image-2-edit`

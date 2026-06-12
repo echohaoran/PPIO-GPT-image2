@@ -1,7 +1,8 @@
-// ====== 配置 ======
-const API_KEY = 'sk_aODZCHX9jhJGPuDmlk-cEkQHO71CWc5JDMfmk_n2450';
-const T2I_URL = 'https://api.ppio.com/v3/gpt-image-2-text-to-image';
-const EDIT_URL = 'https://api.ppio.com/v3/gpt-image-2-edit';
+// ====== 配置（从 server.py /config.js 注入） ======
+const __cfg = window.__CONFIG__ || {};
+const API_KEY = __cfg.API_KEY || '';
+const T2I_URL = __cfg.T2I_URL || 'https://api.ppio.com/v3/gpt-image-2-text-to-image';
+const EDIT_URL = __cfg.EDIT_URL || 'https://api.ppio.com/v3/gpt-image-2-edit';
 const HISTORY_KEY = 'gpt_image2_history';
 const STYLE_KEY = 'gpt_image2_style';
 const STYLE_PRESETS = {
