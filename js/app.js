@@ -3,6 +3,7 @@ const __cfg = window.__CONFIG__ || {};
 const API_KEY = __cfg.API_KEY || '';
 const T2I_URL = __cfg.T2I_URL || 'https://api.ppio.com/v3/gpt-image-2-text-to-image';
 const EDIT_URL = __cfg.EDIT_URL || 'https://api.ppio.com/v3/gpt-image-2-edit';
+const API_FORMAT = __cfg.API_FORMAT || 'ppio';  // 'ppio' 原生 / 'openai' OpenAI 兼容
 const HISTORY_KEY = 'gpt_image2_history';
 const STYLE_KEY = 'gpt_image2_style';
 const STYLE_PRESETS = {
@@ -303,21 +304,99 @@ document.getElementById('mask-clear').addEventListener('click', () => {
 const getI2IImage = setupUpload('i2i-upload', 'i2i-file');
 
 // ====== API 调用 ======
+// URL 标准化：去掉尾部斜杠，方便拼接子路径
+function normalizeUrl(url) {
+  if (!url) return url;
+  return url.replace(/\/+$/, '');
+}
+
+// PPIO 画质 -> OpenAI 画质
+function mapQualityForOpenAI(quality) {
+  const q = String(quality || '').toLowerCase();
+  if (q === 'medium') return 'standard';
+  if (q === 'high') return 'hd';
+  return q || 'hd';
+}
+
+// PPIO 尺寸 -> OpenAI 尺寸（OpenAI 兼容端一般只支持 1024x1024/1024x1792/1792x1024/auto）
+function mapSizeForOpenAI(w, h) {
+  if (w === h) return '1024x1024';
+  // 竖图
+  if (h > w) return '1024x1536';  // 1024x1792 的近似
+  // 横图
+  return '1536x1024';  // 1792x1024 的近似
+}
+
 async function callAPI(url, body) {
-  log('INFO', 'API请求', `${url} prompt=${body.prompt?.slice(0,60)} size=${body.size} quality=${body.quality}`);
+  log('INFO', 'API请求', `${url} format=${API_FORMAT} prompt=${body.prompt?.slice(0,60)} size=${body.size} quality=${body.quality}`);
   const startTime = Date.now();
   const TIMEOUT = 5 * 60 * 1000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT);
+
+  // 构造请求 URL 和 body
+  let requestUrl = url;
+  let requestBody = body;
+  let extraHeaders = {};
+
+  if (API_FORMAT === 'openai') {
+    // OpenAI 兼容格式：去掉 URL 里的 /v1/images/generations，统一从 baseUrl 拼接
+    const baseUrl = normalizeUrl(url).replace(/\/v\d+\/images\/(generations|edits).*$/i, '');
+    const [w, h] = String(body.size || '1024x1024').split('x').map(Number);
+    const oaSize = mapSizeForOpenAI(w, h);
+    const oaQuality = mapQualityForOpenAI(body.quality);
+
+    if (body.image && body.mask) {
+      // Inpaint 修复 -> /v1/images/edits 走 multipart/form-data
+      requestUrl = `${baseUrl}/v1/images/edits`;
+      const fd = new FormData();
+      fd.append('prompt', body.prompt);
+      fd.append('model', 'gpt-image-2');
+      fd.append('n', String(body.n || 1));
+      fd.append('size', oaSize);
+      fd.append('quality', oaQuality);
+      fd.append('response_format', 'url');
+      // 原图转 Blob
+      const imgBlob = await (await fetch(body.image)).blob();
+      fd.append('image', imgBlob, 'image.png');
+      // 遮罩转 Blob
+      const maskBlob = await (await fetch(body.mask)).blob();
+      fd.append('mask', maskBlob, 'mask.png');
+      requestBody = fd;
+      // fetch 会自动设置 multipart 边界
+    } else if (body.image) {
+      // 图生图 / Logo 生图 -> /v1/images/edits 走 multipart/form-data
+      requestUrl = `${baseUrl}/v1/images/edits`;
+      const fd = new FormData();
+      fd.append('prompt', body.prompt);
+      fd.append('model', 'gpt-image-2');
+      fd.append('n', String(body.n || 1));
+      fd.append('size', oaSize);
+      fd.append('quality', oaQuality);
+      fd.append('response_format', 'url');
+      const imgBlob = await (await fetch(body.image)).blob();
+      fd.append('image', imgBlob, 'image.png');
+      requestBody = fd;
+    } else {
+      // 文生图 -> /v1/images/generations 走 JSON
+      requestUrl = `${baseUrl}/v1/images/generations`;
+      requestBody = {
+        prompt: body.prompt,
+        model: 'gpt-image-2',
+        n: body.n || 1,
+        size: oaSize,
+        quality: oaQuality,
+        response_format: 'url',
+      };
+    }
+  }
+
   let res;
   try {
-    res = await fetch(url, {
+    res = await fetch(requestUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
+      headers: extraHeaders,
+      body: requestBody,
       signal: controller.signal,
     });
   } catch (e) {
@@ -338,6 +417,32 @@ async function callAPI(url, body) {
   clearTimeout(timer);
   const data = await res.json();
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+
+  // OpenAI 格式：{ created, data: [{ url: "..." } | { b64_json: "..." }] }
+  if (API_FORMAT === 'openai') {
+    if (data.error) {
+      const msg = data.error.message || data.error.code || JSON.stringify(data.error);
+      log('ERROR', 'API错误', `${elapsed} ${msg}`);
+      throw new Error(msg);
+    }
+    if (!data.data || !data.data.length) {
+      log('ERROR', '无图片返回', `${elapsed} ${JSON.stringify(data).slice(0,200)}`);
+      throw new Error('响应中没有图片: ' + JSON.stringify(data).slice(0, 300));
+    }
+    const first = data.data[0];
+    let imageUrl;
+    if (first.url) {
+      imageUrl = first.url;
+    } else if (first.b64_json) {
+      imageUrl = 'data:image/png;base64,' + first.b64_json;
+    } else {
+      throw new Error('返回数据中没有 url 或 b64_json: ' + JSON.stringify(first).slice(0, 200));
+    }
+    log('INFO', 'API成功', `${elapsed} url=${String(imageUrl).slice(0,80)}`);
+    return imageUrl;
+  }
+
+  // PPIO 原生格式：{ code: 200, images: ["..."] }
   if (data.code && data.code !== 200 && data.code !== 0) {
     log('ERROR', 'API错误', `${elapsed} ${JSON.stringify(data).slice(0,200)}`);
     throw new Error(data.message || data.error || JSON.stringify(data));

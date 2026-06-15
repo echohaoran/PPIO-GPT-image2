@@ -213,6 +213,191 @@ environment:
 
 ---
 
+## API 调用方式
+
+本项目提供两种 API 调用方式：**前端直接调用 PPIO API** 和 **OpenAI 兼容代理服务器**。
+
+### 方式一：前端直接调用 PPIO API
+
+前端通过 `server.py` 注入的配置，直接向 PPIO API 发起请求。
+
+#### 文生图（Text-to-Image）
+
+```bash
+curl -X POST https://api.ppio.com/v3/gpt-image-2-text-to-image \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "高品质餐厅菜单摄影，红烧肉",
+    "size": "1024x1536",
+    "n": 1,
+    "quality": "high",
+    "moderation": "low",
+    "output_format": "png",
+    "output_compression": 100,
+    "background": "opaque"
+  }'
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "images": ["https://cdn.ppio.com/xxx/result.png"]
+}
+```
+
+#### 图生图 / Logo 生图（Image Edit）
+
+```bash
+curl -X POST https://api.ppio.com/v3/gpt-image-2-edit \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "高品质餐厅菜单摄影，红烧肉",
+    "size": "1024x1536",
+    "n": 1,
+    "quality": "high",
+    "moderation": "low",
+    "output_format": "png",
+    "output_compression": 100,
+    "background": "opaque",
+    "image": "data:image/png;base64,iVBORw0KGgo..."
+  }'
+```
+
+#### Inpaint 修复（带 mask）
+
+```bash
+curl -X POST https://api.ppio.com/v3/gpt-image-2-edit \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "把背景换成蓝色",
+    "size": "1024x1024",
+    "n": 1,
+    "quality": "high",
+    "moderation": "low",
+    "output_format": "png",
+    "output_compression": 100,
+    "background": "opaque",
+    "image": "data:image/jpeg;base64,/9j/4AAQ...",
+    "mask": "data:image/png;base64,iVBORw0KGgo..."
+  }'
+```
+
+> **mask 格式**：透明区域（alpha=0）为需要修复的部分，不透明区域（alpha=255）为保留区域。
+
+#### 请求参数说明
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `prompt` | string | 是 | 生成描述文本 |
+| `size` | string | 否 | 图片尺寸，默认 `1024x1024`，支持 `1024x1536`、`1536x1024`、`2048x2048` 等 |
+| `n` | int | 否 | 生成数量，默认 `1` |
+| `quality` | string | 否 | 画质：`medium` / `high`，默认 `high` |
+| `moderation` | string | 否 | 内容审核级别：`low` / `medium` / `high` |
+| `output_format` | string | 否 | 输出格式：`png` / `jpeg` / `webp` |
+| `output_compression` | int | 否 | 压缩质量 0-100，默认 `100` |
+| `background` | string | 否 | 背景：`opaque`（不透明）/ `transparent`（透明） |
+| `image` | string | 否 | 参考图 data URL（图生图/Inpaint 时必填） |
+| `mask` | string | 否 | 遮罩图 data URL（Inpaint 时使用） |
+
+#### 支持的尺寸列表
+
+```
+1024x1024, 1024x1536, 1536x1024, 2048x2048, 2048x1152, 1152x2048,
+2048x1536, 1536x2048, 2048x1360, 1360x2048, 2048x1024, 1024x2048,
+2048x880, 880x2048, 2048x688, 688x2048, 3840x2160, 2160x3840, auto
+```
+
+---
+
+### 方式二：OpenAI 兼容代理服务器
+
+启动 `api_server.py` 后，可通过 OpenAI 标准格式调用（适用于 Open WebUI 等工具集成）。
+
+```bash
+python3 api_server.py
+# 默认监听 http://0.0.0.0:8766
+```
+
+#### 列出可用模型
+
+```bash
+curl http://localhost:8766/v1/models
+```
+
+**响应：**
+
+```json
+{
+  "object": "list",
+  "data": [{"id": "gpt-image-2", "object": "model", "owned_by": "ppio"}]
+}
+```
+
+#### 文生图（OpenAI 格式）
+
+```bash
+curl -X POST http://localhost:8766/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "一份精美的提拉米苏",
+    "model": "gpt-image-2",
+    "n": 1,
+    "size": "1024x1024",
+    "quality": "hd",
+    "response_format": "url"
+  }'
+```
+
+**响应：**
+
+```json
+{
+  "created": 1700000000,
+  "data": [{"url": "https://cdn.ppio.com/xxx/result.png"}]
+}
+```
+
+> `response_format` 设为 `b64_json` 可直接返回 base64 编码图片数据。
+
+#### 图片编辑（OpenAI 格式，multipart/form-data）
+
+```bash
+curl -X POST http://localhost:8766/v1/images/edits \
+  -F "image=@photo.png" \
+  -F "mask=@mask.png" \
+  -F "prompt=把背景换成海滩" \
+  -F "size=1024x1024" \
+  -F "quality=hd" \
+  -F "response_format=url"
+```
+
+#### OpenAI 参数映射
+
+| OpenAI 参数 | PPIO 映射 | 说明 |
+|------------|-----------|------|
+| `quality: "standard"` | `quality: "medium"` | 标准画质 |
+| `quality: "hd"` | `quality: "high"` | 高清画质 |
+| `quality: "auto"` | `quality: "high"` | 自动映射为高清 |
+| `size: "256x256"` | `size: "1024x1024"` | 小尺寸自动升级 |
+| `size: "512x512"` | `size: "1024x1024"` | 小尺寸自动升级 |
+| `size: "1024x1792"` | `size: "1024x1536"` | 映射为最近尺寸 |
+| `size: "1792x1024"` | `size: "1536x1024"` | 映射为最近尺寸 |
+
+#### Open WebUI 集成配置
+
+在 Open WebUI 中添加图片生成服务：
+
+- **Base URL**: `http://<服务器IP>:8766/v1`
+- **API Key**: 任意非空字符串
+- **Model**: `gpt-image-2`
+
+---
+
 ## 原理
 
 ### 生成流程

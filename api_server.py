@@ -25,7 +25,7 @@ from typing import Optional
 
 import httpx
 import uvicorn
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -108,16 +108,25 @@ def openai_error(message: str, code: str = "invalid_request_error", status: int 
     )
 
 
-def ppio_headers() -> dict:
+def ppio_headers(api_key: str = "") -> dict:
+    key = api_key or API_KEY
     return {
-        "Authorization": f"Bearer {API_KEY}",
+        "Authorization": f"Bearer {key}",
         "Content-Type": "application/json",
     }
 
 
-async def call_ppio(client: httpx.AsyncClient, url: str, body: dict) -> dict:
+def extract_user_api_key(request: Request) -> str:
+    """Extract API key from Authorization header (Bearer token). Returns empty string if absent."""
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip()
+    return ""
+
+
+async def call_ppio(client: httpx.AsyncClient, url: str, body: dict, api_key: str = "") -> dict:
     """Call PPIO API and return parsed JSON. Raises on transport errors."""
-    resp = await client.post(url, json=body, headers=ppio_headers(), timeout=REQUEST_TIMEOUT)
+    resp = await client.post(url, json=body, headers=ppio_headers(api_key), timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     return resp.json()
 
@@ -267,10 +276,13 @@ async def list_models():
 
 
 @app.post("/v1/images/generations")
-async def generate_image(body: ImageGenerationRequest):
+async def generate_image(body: ImageGenerationRequest, request: Request):
     """Text-to-image generation — proxies to PPIO T2I API."""
-    if not API_KEY:
-        return openai_error("API_KEY is not configured on the server.", "invalid_api_key", 500)
+    user_key = extract_user_api_key(request)
+    effective_key = user_key or API_KEY
+
+    if not effective_key:
+        return openai_error("API_KEY is not configured. Provide your own key via Authorization header.", "invalid_api_key", 500)
 
     quality = map_quality(body.quality)
     size = map_size(body.size)
@@ -286,13 +298,13 @@ async def generate_image(body: ImageGenerationRequest):
         "background": "opaque",
     }
 
-    logger.info("POST /v1/images/generations | prompt=%s | size=%s | quality=%s->%s | model=%s | n=%d",
-                body.prompt[:80], body.size, body.quality, quality, body.model, body.n)
+    logger.info("POST /v1/images/generations | prompt=%s | size=%s | quality=%s->%s | model=%s | n=%d | custom_key=%s",
+                body.prompt[:80], body.size, body.quality, quality, body.model, body.n, "yes" if user_key else "no")
     logger.debug("PPIO request body: %s", ppio_body)
 
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(T2I_URL, json=ppio_body, headers=ppio_headers(), timeout=REQUEST_TIMEOUT)
+            resp = await client.post(T2I_URL, json=ppio_body, headers=ppio_headers(effective_key), timeout=REQUEST_TIMEOUT)
 
             logger.info("PPIO response: HTTP %d | body=%s", resp.status_code, resp.text[:500])
 
@@ -327,6 +339,7 @@ async def generate_image(body: ImageGenerationRequest):
 
 @app.post("/v1/images/edits")
 async def edit_image(
+    request: Request,
     image: UploadFile = File(...),
     mask: Optional[UploadFile] = File(None),
     prompt: str = Form(...),
@@ -337,8 +350,11 @@ async def edit_image(
     response_format: str = Form("url"),
 ):
     """Image edit / inpaint — proxies to PPIO Edit API."""
-    if not API_KEY:
-        return openai_error("API_KEY is not configured on the server.", "invalid_api_key", 500)
+    user_key = extract_user_api_key(request)
+    effective_key = user_key or API_KEY
+
+    if not effective_key:
+        return openai_error("API_KEY is not configured. Provide your own key via Authorization header.", "invalid_api_key", 500)
 
     quality = map_quality(quality)
     size = map_size(size)
@@ -367,12 +383,12 @@ async def edit_image(
         mask_b64 = base64.b64encode(mask_bytes).decode("ascii")
         body["mask"] = f"data:{mask_content_type};base64,{mask_b64}"
 
-    logger.info("POST /v1/images/edits | prompt=%s | size=%s | quality=%s | mask=%s",
-                prompt[:80], size, quality, "yes" if mask else "no")
+    logger.info("POST /v1/images/edits | prompt=%s | size=%s | quality=%s | mask=%s | custom_key=%s",
+                prompt[:80], size, quality, "yes" if mask else "no", "yes" if user_key else "no")
 
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(EDIT_URL, json=body, headers=ppio_headers(), timeout=REQUEST_TIMEOUT)
+            resp = await client.post(EDIT_URL, json=body, headers=ppio_headers(effective_key), timeout=REQUEST_TIMEOUT)
 
             logger.info("PPIO response: HTTP %d | body=%s", resp.status_code, resp.text[:500])
 

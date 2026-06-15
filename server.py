@@ -103,6 +103,7 @@ class Handler(SimpleHTTPRequestHandler):
             "API_KEY": os.environ.get("API_KEY", ""),
             "T2I_URL": os.environ.get("T2I_URL", "https://api.ppio.com/v3/gpt-image-2-text-to-image"),
             "EDIT_URL": os.environ.get("EDIT_URL", "https://api.ppio.com/v3/gpt-image-2-edit"),
+            "API_FORMAT": os.environ.get("API_FORMAT", "ppio"),
         }
         js = f"window.__CONFIG__={json.dumps(config)};"
         body = js.encode("utf-8")
