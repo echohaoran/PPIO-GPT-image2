@@ -3,6 +3,17 @@ set -e
 
 PORT=${PORT:-8765}
 
+compose_cmd() {
+  if docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose "$@"
+  else
+    echo "❌ 未找到 Docker Compose，请先安装 docker compose 或 docker-compose"
+    exit 1
+  fi
+}
+
 echo "🚀 成长中心菜品图生成 - 部署脚本"
 echo ""
 
@@ -13,16 +24,16 @@ case "${1:-help}" in
     ;;
   docker)
     echo "🐳 构建并启动 Docker 容器..."
-    docker-compose up -d --build
+    compose_cmd up -d --build
     echo "✅ 已启动: http://localhost:${PORT}"
     ;;
   stop)
     echo "🛑 停止 Docker 容器..."
-    docker-compose down
+    compose_cmd down
     ;;
   build)
     echo "🔨 构建 Docker 镜像..."
-    docker-compose build
+    compose_cmd build
     ;;
   nginx)
     echo "🔧 启动 Nginx 模式..."

@@ -1,4 +1,5 @@
-FROM python:3.9-slim
+ARG PYTHON_BASE_IMAGE=swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.9-slim
+FROM ${PYTHON_BASE_IMAGE}
 
 WORKDIR /app
 

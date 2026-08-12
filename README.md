@@ -69,10 +69,48 @@ docker-compose down
 
 启动后访问 `http://服务器IP:8765`
 
+### 开发环境服务器同步与部署
+
+项目内置了开发环境同步脚本，适合把本地修改快速同步到局域网/测试机。
+
+```bash
+# 1. 配置开发环境服务器
+cp .dev-server.env.example .dev-server.env
+
+# 2. 首次初始化：远端 clone + 同步 .env + compose 启动
+./scripts/devbox.sh bootstrap
+
+# 3. 本地改完代码后，推送到开发环境服务器
+./scripts/devbox.sh push
+
+# 4. 在开发环境服务器重建并启动
+./scripts/devbox.sh deploy
+
+# 5. 如需把开发环境服务器上的改动拉回本地
+./scripts/devbox.sh pull
+```
+
+`.dev-server.env` 关键配置项：
+
+- `DEV_HOST`：开发环境服务器 IP
+- `DEV_USER`：SSH 用户名
+- `DEV_PORT`：SSH 端口，默认 `22`
+- `DEV_PATH`：远端项目目录，默认 `/opt/PPIO-GPT-image2`
+- `DEV_GIT_URL`：远端 clone 使用的仓库地址；留空时默认读取当前仓库 `origin`
+- `DEV_SSH_PASS`：如果开发环境服务器仍使用密码登录，可填密码；已配置密钥时留空即可
+- `DEV_SYNC_ENV`：是否同步本地 `.env` 到开发环境服务器，`1` 为同步
+
 ### 方式二：自定义端口
 
 ```bash
 PORT=80 docker-compose up -d
+```
+
+如果部署机器访问 Docker Hub 较慢，可以在构建时覆盖基础镜像：
+
+```bash
+docker compose build \
+  --build-arg PYTHON_BASE_IMAGE=swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.9-slim
 ```
 
 ### 方式三：直接运行 Python 服务器
